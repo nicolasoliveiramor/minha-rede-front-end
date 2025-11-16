@@ -1,0 +1,466 @@
+import { useState, useEffect } from "react";
+import { api, mediaUrl } from "../api/client";
+
+import { Title, ErrorText } from "../styles";
+
+import * as S from "./Feed_styles";
+
+type Props = {
+  // usuário opcional para permitir feed público
+  user?: { id: number; username: string };
+};
+
+type Post = {
+  id: number;
+  author: number;
+  author_username: string;
+  author_profile_picture: string | null;
+  content: string;
+  image: string | null;
+  created_at: string;
+  likes_count: number;
+  comments_count: number;
+  retweets_count: number;
+  liked_by_me: boolean;
+  retweeted_by_me: boolean;
+};
+
+export default function Feed({ user }: Props) {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [err, setErr] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const [content, setContent] = useState("");
+  const [image, setImage] = useState<File | null>(null);
+  const [posting, setPosting] = useState(false);
+
+  // Estados de comentários
+  type Comment = {
+    id: number;
+    author: number;
+    author_username: string;
+    author_profile_picture: string | null;
+    post: number;
+    content: string;
+    created_at: string;
+  };
+  const [openComments, setOpenComments] = useState<Record<number, boolean>>({});
+  const [commentsByPost, setCommentsByPost] = useState<Record<number, Comment[]>>({});
+  const [commentText, setCommentText] = useState<Record<number, string>>({});
+  const [commenting, setCommenting] = useState<Record<number, boolean>>({});
+
+  // Lista de usuários na sidebar
+  type UserItem = {
+    id: number;
+    username: string;
+    first_name?: string;
+    last_name?: string;
+    profile_picture: string | null;
+    followers_count: number;
+    following_count: number;
+    followed_by_me: boolean;
+  };
+  const [usersList, setUsersList] = useState<UserItem[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [busyFollow, setBusyFollow] = useState<Record<number, boolean>>({});
+
+  function normalizePostsResponse(resp: any): Post[] {
+    if (Array.isArray(resp)) return resp;
+    if (resp && Array.isArray(resp.results)) return resp.results;
+    if (resp && Array.isArray(resp.data)) return resp.data;
+    if (resp && Array.isArray(resp.items)) return resp.items;
+    if (resp && Array.isArray(resp.posts)) return resp.posts;
+    return [];
+  }
+
+  function timeAgo(iso: string) {
+    const diff = Date.now() - new Date(iso).getTime();
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 1) return "agora";
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} h`;
+    const days = Math.floor(hours / 24);
+    return `${days} d`;
+  }
+
+  async function load() {
+    setLoading(true);
+    setErr(null);
+
+    try {
+      const data = await api.posts.feed();
+      setPosts(normalizePostsResponse(data));
+    } catch (e: any) {
+      setErr(e.message || "Falha ao carregar feed");
+    }
+    setLoading(false);
+  }
+
+  async function loadUsers() {
+    setLoadingUsers(true);
+    try {
+      const data = await api.auth.listUsers();
+      const list: UserItem[] = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.results)
+        ? data.results
+        : [];
+      setUsersList(list);
+    } catch (e: any) {
+      // não quebra feed; apenas loga erro
+      console.warn("Falha ao carregar usuários:", e?.message || e);
+    } finally {
+      setLoadingUsers(false);
+    }
+  }
+
+  useEffect(() => {
+    load();
+    loadUsers();
+  }, []);
+
+  async function submitPost(e: React.FormEvent) {
+    e.preventDefault();
+    if (!user) {
+      setErr("Faça login para publicar.");
+      return;
+    }
+    if (!content.trim() && !image) return;
+    setPosting(true);
+    setErr(null);
+    try {
+      await api.posts.create({ content, image });
+      setContent("");
+      setImage(null);
+      await load();
+    } catch (e: any) {
+      setErr(e.message || "Erro ao publicar");
+    } finally {
+      setPosting(false);
+    }
+  }
+
+  async function toggleLike(p: Post) {
+    if (!user) {
+      setErr("Faça login para curtir/descurtir.");
+      return;
+    }
+    try {
+      if (!p.liked_by_me) {
+        await api.posts.like(p.id);
+        setPosts((prev) =>
+          prev.map((it) =>
+            it.id === p.id
+              ? { ...it, liked_by_me: true, likes_count: it.likes_count + 1 }
+              : it
+          )
+        );
+      } else {
+        await api.posts.unlike(p.id);
+        setPosts((prev) =>
+          prev.map((it) =>
+            it.id === p.id
+              ? { ...it, liked_by_me: false, likes_count: Math.max(0, it.likes_count - 1) }
+              : it
+          )
+        );
+      }
+    } catch (e: any) {
+      setErr(e.message || "Erro ao curtir/descurtir");
+    }
+  }
+
+  async function toggleRetweet(p: Post) {
+    if (!user) {
+      setErr("Faça login para retweetar/desretweetar.");
+      return;
+    }
+    try {
+      if (!p.retweeted_by_me) {
+        await api.posts.retweet(p.id);
+        setPosts((prev) =>
+          prev.map((it) =>
+            it.id === p.id
+              ? { ...it, retweeted_by_me: true, retweets_count: it.retweets_count + 1 }
+              : it
+          )
+        );
+      } else {
+        await api.posts.unretweet(p.id);
+        setPosts((prev) =>
+          prev.map((it) =>
+            it.id === p.id
+              ? { ...it, retweeted_by_me: false, retweets_count: Math.max(0, it.retweets_count - 1) }
+              : it
+          )
+        );
+      }
+    } catch (e: any) {
+      setErr(e.message || "Erro ao retweetar/desretweetar");
+    }
+  }
+
+  // Abrir/fechar comentários e carregar ao abrir
+  async function toggleComments(postId: number) {
+    setOpenComments((prev) => ({ ...prev, [postId]: !prev[postId] }));
+    const isOpening = !openComments[postId];
+    if (isOpening && !commentsByPost[postId]) {
+      try {
+        const list = await api.posts.comments(postId);
+        setCommentsByPost((prev) => ({ ...prev, [postId]: list }));
+      } catch (e: any) {
+        setErr(e.message || "Falha ao carregar comentários");
+      }
+    }
+  }
+
+  async function submitComment(postId: number) {
+    const text = (commentText[postId] || "").trim();
+    if (!text) return;
+    setCommenting((prev) => ({ ...prev, [postId]: true }));
+    setErr(null);
+    try {
+      const newComment = await api.posts.addComment(postId, text);
+      // Atualiza lista local
+      setCommentsByPost((prev) => ({
+        ...prev,
+        [postId]: [newComment, ...(prev[postId] || [])],
+      }));
+      // Incrementa contador do post
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId ? { ...p, comments_count: p.comments_count + 1 } : p
+        )
+      );
+      // Limpa campo
+      setCommentText((prev) => ({ ...prev, [postId]: "" }));
+    } catch (e: any) {
+      setErr(e.message || "Erro ao comentar");
+    } finally {
+      setCommenting((prev) => ({ ...prev, [postId]: false }));
+    }
+  }
+
+  async function toggleFollow(u: UserItem) {
+    if (!user) {
+      setErr("Faça login para seguir usuários.");
+      return;
+    }
+    setBusyFollow((prev) => ({ ...prev, [u.id]: true }));
+    try {
+      if (!u.followed_by_me) {
+        await api.auth.follow(u.id);
+        setUsersList((prev) =>
+          prev.map((it) =>
+            it.id === u.id
+              ? { ...it, followed_by_me: true, followers_count: it.followers_count + 1 }
+              : it
+          )
+        );
+      } else {
+        await api.auth.unfollow(u.id);
+        setUsersList((prev) =>
+          prev.map((it) =>
+            it.id === u.id
+              ? { ...it, followed_by_me: false, followers_count: Math.max(0, it.followers_count - 1) }
+              : it
+          )
+        );
+      }
+    } catch (e: any) {
+      setErr(e.message || "Erro ao seguir/desseguir");
+    } finally {
+      setBusyFollow((prev) => ({ ...prev, [u.id]: false }));
+    }
+  }
+
+  if (loading) return <div>Carregando...</div>;
+
+  return (
+    <>
+      <Title>Feed - {user ? user.username : "Público"}</Title>
+      <S.PageGrid>
+        <S.MainColumn>
+          <S.FeedContainer>
+            {/* Compositor de post */}
+            <S.ComposerForm onSubmit={submitPost}>
+              <S.Textarea
+                placeholder="O que está acontecendo?"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                rows={3}
+              />
+              <S.UploadRow>
+                {/* input nativo escondido */}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setImage(e.target.files?.[0] || null)}
+                  style={{ display: "none" }}
+                  id="composer-file-input"
+                />
+                {/* botão estilizado que abre o seletor */}
+                <label htmlFor="composer-file-input">
+                  <S.UploadButton type="button">Escolher imagem</S.UploadButton>
+                </label>
+                {image && <S.FileName>{image.name}</S.FileName>}
+                <S.ActionButton type="submit" disabled={posting || (!content.trim() && !image)}>
+                  {posting ? "Publicando..." : "Publicar"}
+                </S.ActionButton>
+              </S.UploadRow>
+            </S.ComposerForm>
+
+            {/* Exibição de erros globais do feed */}
+            {err && <ErrorText>{err}</ErrorText>}
+
+            {/* Estado vazio */}
+            {posts.length === 0 && (
+              <S.EmptyState>Seu feed está vazio. Publique algo para começar!</S.EmptyState>
+            )}
+
+            {/* Lista de posts */}
+            {posts.map((p) => (
+              <S.PostCard key={p.id}>
+                <S.HeaderRow>
+                  <S.Avatar>
+                    {p.author_profile_picture ? (
+                      <img src={mediaUrl(p.author_profile_picture)} alt="Avatar" />
+                    ) : (
+                      p.author_username?.[0]?.toUpperCase() || "U"
+                    )}
+                  </S.Avatar>
+                  <div>
+                    <S.AuthorName>{p.author_username}</S.AuthorName>
+                    <S.Timestamp>{timeAgo(p.created_at)}</S.Timestamp>
+                  </div>
+                </S.HeaderRow>
+    
+                <S.Content>{p.content}</S.Content>
+                {p.image && <S.PostImage src={p.image} alt="Imagem do post" />}
+    
+                <S.ActionsRow>
+                  <S.ActionButton
+                    type="button"
+                    $variant="like"
+                    $active={p.liked_by_me}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      toggleLike(p);
+                    }}
+                  >
+                    {p.liked_by_me ? "Descurtir" : "Curtir"} {p.likes_count}
+                  </S.ActionButton>
+    
+                  <S.ActionButton
+                    type="button"
+                    $variant="retweet"
+                    $active={p.retweeted_by_me}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      toggleRetweet(p);
+                    }}
+                  >
+                    {p.retweeted_by_me ? "Remover" : "Retweet"} {p.retweets_count}
+                  </S.ActionButton>
+
+                  <S.ActionButton
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      toggleComments(p.id);
+                    }}
+                  >
+                    Comentar
+                  </S.ActionButton>
+
+                  <S.StatLabel>Comentários {p.comments_count}</S.StatLabel>
+                </S.ActionsRow>
+    
+                {openComments[p.id] && (
+                  <S.CommentsBox>
+                    <S.CommentsList>
+                      {commentsByPost[p.id]?.map((c) => (
+                        <S.CommentItem key={c.id}>
+                          <S.CommentHeader>
+                            <S.CommentAvatar>
+                              {c.author_profile_picture ? (
+                                <img src={mediaUrl(c.author_profile_picture)} alt="Avatar" />
+                              ) : (
+                                c.author_username?.[0]?.toUpperCase() || "U"
+                              )}
+                            </S.CommentAvatar>
+                            <S.CommentAuthor>{c.author_username}</S.CommentAuthor>
+                            <S.CommentTimestamp>{timeAgo(c.created_at)}</S.CommentTimestamp>
+                          </S.CommentHeader>
+                          <S.CommentContent>{c.content}</S.CommentContent>
+                        </S.CommentItem>
+                      ))}
+                    </S.CommentsList>
+    
+                    <S.CommentForm
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        submitComment(p.id);
+                      }}
+                    >
+                      <S.CommentInput
+                        placeholder="Escreva um comentário..."
+                        value={commentText[p.id] || ""}
+                        onChange={(e) =>
+                          setCommentText((prev) => ({ ...prev, [p.id]: e.target.value }))
+                        }
+                      />
+                      <S.ActionButton type="submit" disabled={commenting[p.id]}>
+                        {commenting[p.id] ? "Comentando..." : "Comentar"}
+                      </S.ActionButton>
+                    </S.CommentForm>
+                  </S.CommentsBox>
+                )}
+              </S.PostCard>
+            ))}
+          </S.FeedContainer>
+        </S.MainColumn>
+    
+        <S.RightColumn>
+          <S.SidebarCard>
+            <S.SidebarTitle>Usuários</S.SidebarTitle>
+            {loadingUsers && <div>Carregando usuários...</div>}
+            <S.UsersList>
+              {usersList.map((u) => (
+                <S.UserRow key={u.id}>
+                  <S.UserInfo>
+                    <S.UserAvatar>
+                      {u.profile_picture ? (
+                        <img src={mediaUrl(u.profile_picture)} alt="Avatar" />
+                      ) : (
+                        u.username?.[0]?.toUpperCase() || "U"
+                      )}
+                    </S.UserAvatar>
+                    <div>
+                      <div style={{ fontWeight: 700 }}>{u.username}</div>
+                      <div style={{ fontSize: 12, color: "#657786" }}>
+                        Seguidores • {u.followers_count}
+                      </div>
+                    </div>
+                  </S.UserInfo>
+                  <S.FollowButton
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      toggleFollow(u);
+                    }}
+                    disabled={!!busyFollow[u.id]}
+                    $active={u.followed_by_me}
+                  >
+                    {u.followed_by_me ? "Seguindo" : "Seguir"}
+                  </S.FollowButton>
+                </S.UserRow>
+              ))}
+            </S.UsersList>
+          </S.SidebarCard>
+        </S.RightColumn>
+      </S.PageGrid>
+    </>
+  );
+}
