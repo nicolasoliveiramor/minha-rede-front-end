@@ -1,4 +1,6 @@
-const BASE = import.meta.env.VITE_API_BASE ?? "/api";
+const BASE =
+  (import.meta as any).env?.VITE_API_BASE_URL ||
+  ((import.meta as any).env?.DEV ? "/api" : "");
 
 const getCsrfToken = () => {
   const token = document.cookie
