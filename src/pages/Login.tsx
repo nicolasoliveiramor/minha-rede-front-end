@@ -24,6 +24,7 @@ export default function Login({ onLogged }: Props) {
         email_or_username: login.trim(),
         password: password
       });
+      await api.auth.checkAuth();
       onLogged(data);
       navigate("/");
     } catch (e: any) {

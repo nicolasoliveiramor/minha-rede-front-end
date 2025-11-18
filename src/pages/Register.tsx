@@ -44,6 +44,7 @@ export default function Register() {
         email_or_username: username || email,
         password,
       });
+      await api.auth.checkAuth();
 
       navigate("/");
     } catch (e: any) {

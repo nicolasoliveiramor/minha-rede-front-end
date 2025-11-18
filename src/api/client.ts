@@ -11,12 +11,20 @@ const getCsrfToken = () => {
   return token;
 };
 
+const ensureCsrf = async () => {
+  const token = getCsrfToken();
+  if (token) return token;
+  await fetch(BASE + "/auth/check-auth/", { credentials: "include" });
+  return getCsrfToken() || "";
+};
+
 const request = async (path: string, init: RequestInit = {}) => {
   const headers = new Headers(init.headers || {});
   const method = (init.method || "GET").toUpperCase();
 
   if (method !== "GET") {
-    const csrf = getCsrfToken();
+    const csrfHeader = headers.get("X-CSRFToken") || "";
+    const csrf = csrfHeader || (await ensureCsrf());
     if (csrf && !headers.has("X-CSRFToken")) {
       headers.set("X-CSRFToken", csrf);
     }
