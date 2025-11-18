@@ -14,7 +14,7 @@ const getCsrfToken = () => {
 const ensureCsrf = async () => {
   const token = getCsrfToken();
   if (token) return token;
-  await fetch(BASE + "/auth/check-auth/", { credentials: "include" });
+  await fetch(BASE + "/auth/csrf/", { credentials: "include" });
   return getCsrfToken() || "";
 };
 
