@@ -3,19 +3,28 @@ const BASE = BASE_ORIGIN
   ? new URL("/api", BASE_ORIGIN).toString().replace(/\/$/, "")
   : ((import.meta as any).env?.DEV ? "/api" : "")
 
-const getCsrfToken = () => {
-  const token = document.cookie
-    .split("; ")
-    .find((row) => row.startsWith("csrftoken="))
-    ?.split("=")[1];
-  return token;
+const getCsrfTokenFromCookie = () => {
+  try {
+    const token = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("csrftoken="))
+      ?.split("=")[1];
+    return token || "";
+  } catch {
+    return "";
+  }
 };
 
 const ensureCsrf = async () => {
-  const token = getCsrfToken();
-  if (token) return token;
-  await fetch(BASE + "/auth/csrf/", { credentials: "include" });
-  return getCsrfToken() || "";
+  const cookieToken = getCsrfTokenFromCookie();
+  if (cookieToken) return cookieToken;
+  const res = await fetch(BASE + "/auth/csrf/", { credentials: "include" });
+  try {
+    const data = await res.json();
+    return (data && (data.csrfToken || data.csrf || data.token)) || "";
+  } catch {
+    return "";
+  }
 };
 
 const request = async (path: string, init: RequestInit = {}) => {
