@@ -1,5 +1,4 @@
 import styled from "styled-components"
-import { theme } from "../styles"
 import * as LS from "./Login_styles"
 
 export const FollowingSection = styled.div`
