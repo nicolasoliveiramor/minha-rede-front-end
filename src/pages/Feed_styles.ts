@@ -410,8 +410,8 @@ export const PageGrid = styled.div`
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
     grid-template-areas:
-      'right'
-      'main';
+      'main'
+      'right';
   }
 `;
 
