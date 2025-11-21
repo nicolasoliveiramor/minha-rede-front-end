@@ -198,6 +198,9 @@ export const CommentDeleteIcon = styled.button`
   line-height: 20px;
   text-align: center;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover {
     background: rgba(224, 36, 94, 0.1);
