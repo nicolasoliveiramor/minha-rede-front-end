@@ -153,6 +153,10 @@ export const api = {
     followers(userId: number) {
       return request(`/auth/${userId}/followers/`, { method: "GET" });
     },
+    // Detalhe público de um usuário por id
+    userDetail(id: number) {
+      return request(`/auth/users/${id}/`, { method: "GET" });
+    },
   },
   posts: {
     list(params?: { ordering?: string; search?: string }) {
@@ -209,6 +213,10 @@ export const api = {
         method: "POST",
         body: JSON.stringify({ content }),
       });
+    },
+    // Excluir comentário por id
+    deleteComment(commentId: number) {
+      return request(`/posts/comments/${commentId}/`, { method: "DELETE" });
     },
     delete(id: number) {
       return request(`/posts/posts/${id}/`, { method: "DELETE" });

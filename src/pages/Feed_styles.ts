@@ -143,6 +143,7 @@ export const CommentsList = styled.div`
 export const CommentItem = styled.div`
   display: grid;
   gap: 4px;
+  position: relative;
 `;
 
 export const CommentHeader = styled.div`
@@ -181,6 +182,26 @@ export const CommentTimestamp = styled.span`
 
 export const CommentContent = styled.div`
   font-size: 14px;
+`;
+
+export const CommentDeleteIcon = styled.button`
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: ${theme.colors.danger};
+  font-size: 16px;
+  line-height: 20px;
+  text-align: center;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(224, 36, 94, 0.1);
+  }
 `;
 
 export const CommentForm = styled.form`

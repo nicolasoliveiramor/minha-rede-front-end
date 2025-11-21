@@ -10,6 +10,7 @@ import { api } from "./api/client";
 import Login from "./pages/Login";
 import Feed from "./pages/Feed";
 import Profile from "./pages/Profile";
+import UserPublic from "./pages/UserPublic";
 import { AppContainer, NavBar, NavLink, PrimaryButton } from "./styles";
 import { AvatarLink } from "./styles";
 import Register from "./pages/Register";
@@ -133,6 +134,7 @@ function App() {
           path="/profile"
           element={user ? <Profile onUpdated={(u) => setUser(u)} /> : <Navigate to="/login" replace />}
         />
+        <Route path="/user/:id" element={<UserPublic />} />
         <Route
           path="/register"
           element={user ? <Navigate to="/" replace /> : <Register />}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { api, mediaUrl } from "../api/client";
+import { Link } from "react-router-dom";
 
 import { Title, ErrorText } from "../styles";
 
@@ -49,6 +50,7 @@ export default function Feed({ user }: Props) {
   const [commentsByPost, setCommentsByPost] = useState<Record<number, Comment[]>>({});
   const [commentText, setCommentText] = useState<Record<number, string>>({});
   const [commenting, setCommenting] = useState<Record<number, boolean>>({});
+  const [busyDeleteComment, setBusyDeleteComment] = useState<Record<number, boolean>>({});
 
   // Lista de usuários na sidebar
   type UserItem = {
@@ -217,6 +219,26 @@ export default function Feed({ user }: Props) {
     }
   }
 
+  async function deleteComment(commentId: number, postId: number) {
+    if (!user) {
+      setErr("Faça login para excluir comentários.");
+      return;
+    }
+    setBusyDeleteComment((prev) => ({ ...prev, [commentId]: true }));
+    try {
+      await api.posts.deleteComment(commentId);
+      setCommentsByPost((prev) => ({
+        ...prev,
+        [postId]: (prev[postId] || []).filter((c) => c.id !== commentId),
+      }));
+      setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, comments_count: Math.max(0, p.comments_count - 1) } : p));
+    } catch (e: any) {
+      setErr(e.message || "Erro ao excluir comentário");
+    } finally {
+      setBusyDeleteComment((prev) => ({ ...prev, [commentId]: false }));
+    }
+  }
+
   async function deletePost(postId: number) {
     if (!user) {
       setErr("Faça login para excluir.");
@@ -356,17 +378,19 @@ export default function Feed({ user }: Props) {
                   </S.DeleteIcon>
                 )}
                 <S.HeaderRow>
-                  <S.Avatar>
-                    {p.author_profile_picture ? (
-                      <img src={mediaUrl(p.author_profile_picture)} alt="Avatar" />
-                    ) : (
-                      p.author_username?.[0]?.toUpperCase() || "U"
-                    )}
-                  </S.Avatar>
-                  <div>
-                    <S.AuthorName>{p.author_username}</S.AuthorName>
-                    <S.Timestamp>{timeAgo(p.created_at)}</S.Timestamp>
-                  </div>
+                  <Link to={`/user/${p.author}`} style={{ textDecoration: "none", color: "inherit", display: "flex", alignItems: "center", gap: 12 }}>
+                    <S.Avatar>
+                      {p.author_profile_picture ? (
+                        <img src={mediaUrl(p.author_profile_picture)} alt="Avatar" />
+                      ) : (
+                        p.author_username?.[0]?.toUpperCase() || "U"
+                      )}
+                    </S.Avatar>
+                    <div>
+                      <S.AuthorName>{p.author_username}</S.AuthorName>
+                      <S.Timestamp>{timeAgo(p.created_at)}</S.Timestamp>
+                    </div>
+                  </Link>
                 </S.HeaderRow>
     
                 <S.Content>{p.content}</S.Content>
@@ -417,6 +441,18 @@ export default function Feed({ user }: Props) {
                     <S.CommentsList>
                       {commentsByPost[p.id]?.map((c) => (
                         <S.CommentItem key={c.id}>
+                          {(user && (c.author === (user as any).id || c.author_username === (user as any).username)) && (
+                            <S.CommentDeleteIcon
+                              aria-label="Excluir comentário"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                deleteComment(c.id, p.id);
+                              }}
+                              disabled={!!busyDeleteComment[c.id]}
+                            >
+                              {busyDeleteComment[c.id] ? "…" : "×"}
+                            </S.CommentDeleteIcon>
+                          )}
                           <S.CommentHeader>
                             <S.CommentAvatar>
                               {c.author_profile_picture ? (
@@ -473,7 +509,9 @@ export default function Feed({ user }: Props) {
                       )}
                     </S.UserAvatar>
                     <div>
-                      <S.UserName>{u.username}</S.UserName>
+                      <Link to={`/user/${u.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+                        <S.UserName>{u.username}</S.UserName>
+                      </Link>
                       <S.FollowersCount>
                         Seguidores • {u.followers_count}
                       </S.FollowersCount>
