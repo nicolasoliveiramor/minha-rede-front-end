@@ -153,23 +153,11 @@ export default function Feed({ user }: Props) {
     try {
       if (!p.liked_by_me) {
         await api.posts.like(p.id);
-        setPosts((prev) =>
-          prev.map((it) =>
-            it.id === p.id
-              ? { ...it, liked_by_me: true, likes_count: it.likes_count + 1 }
-              : it
-          )
-        );
       } else {
         await api.posts.unlike(p.id);
-        setPosts((prev) =>
-          prev.map((it) =>
-            it.id === p.id
-              ? { ...it, liked_by_me: false, likes_count: Math.max(0, it.likes_count - 1) }
-              : it
-          )
-        );
       }
+      const fresh = await api.posts.get(p.id);
+      setPosts((prev) => prev.map((it) => (it.id === p.id ? { ...it, ...fresh } : it)));
     } catch (e: any) {
       setErr(e.message || "Erro ao curtir/descurtir");
     }
@@ -183,23 +171,11 @@ export default function Feed({ user }: Props) {
     try {
       if (!p.retweeted_by_me) {
         await api.posts.retweet(p.id);
-        setPosts((prev) =>
-          prev.map((it) =>
-            it.id === p.id
-              ? { ...it, retweeted_by_me: true, retweets_count: it.retweets_count + 1 }
-              : it
-          )
-        );
       } else {
         await api.posts.unretweet(p.id);
-        setPosts((prev) =>
-          prev.map((it) =>
-            it.id === p.id
-              ? { ...it, retweeted_by_me: false, retweets_count: Math.max(0, it.retweets_count - 1) }
-              : it
-          )
-        );
       }
+      const fresh = await api.posts.get(p.id);
+      setPosts((prev) => prev.map((it) => (it.id === p.id ? { ...it, ...fresh } : it)));
     } catch (e: any) {
       setErr(e.message || "Erro ao retweetar/desretweetar");
     }
@@ -231,7 +207,8 @@ export default function Feed({ user }: Props) {
         ...prev,
         [postId]: (prev[postId] || []).filter((c) => c.id !== commentId),
       }));
-      setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, comments_count: Math.max(0, p.comments_count - 1) } : p));
+      const newLen = (commentsByPost[postId]?.length || 1) - 1;
+      setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, comments_count: Math.max(0, newLen) } : p)));
     } catch (e: any) {
       setErr(e.message || "Erro ao excluir comentário");
     } finally {

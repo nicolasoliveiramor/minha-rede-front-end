@@ -208,6 +208,9 @@ export const api = {
     comments(id: number) {
       return request(`/posts/posts/${id}/comments/`, { method: "GET" });
     },
+    get(id: number) {
+      return request(`/posts/posts/${id}/`, { method: "GET" });
+    },
     addComment(id: number, content: string) {
       return request(`/posts/posts/${id}/comments/`, {
         method: "POST",
