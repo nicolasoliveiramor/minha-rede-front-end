@@ -370,7 +370,7 @@ export default function Feed({ user }: Props) {
                 </S.HeaderRow>
     
                 <S.Content>{p.content}</S.Content>
-                {p.image && <S.PostImage src={p.image} alt="Imagem do post" />}
+                {p.image && <S.PostImage src={mediaUrl(p.image)} alt="Imagem do post" />}
     
                 <S.ActionsRow>
                   <S.ActionButton
