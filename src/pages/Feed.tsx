@@ -64,6 +64,7 @@ export default function Feed({ user }: Props) {
   const [usersList, setUsersList] = useState<UserItem[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [busyFollow, setBusyFollow] = useState<Record<number, boolean>>({});
+  const [busyDelete, setBusyDelete] = useState<Record<number, boolean>>({});
 
   function normalizePostsResponse(resp: any): Post[] {
     if (Array.isArray(resp)) return resp;
@@ -213,6 +214,23 @@ export default function Feed({ user }: Props) {
       } catch (e: any) {
         setErr(e.message || "Falha ao carregar comentários");
       }
+    }
+  }
+
+  async function deletePost(postId: number) {
+    if (!user) {
+      setErr("Faça login para excluir.");
+      return;
+    }
+    if (!window.confirm("Excluir este post?")) return;
+    setBusyDelete((prev) => ({ ...prev, [postId]: true }));
+    try {
+      await api.posts.delete(postId);
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
+    } catch (e: any) {
+      setErr(e.message || "Erro ao excluir");
+    } finally {
+      setBusyDelete((prev) => ({ ...prev, [postId]: false }));
     }
   }
 
@@ -375,6 +393,20 @@ export default function Feed({ user }: Props) {
                   >
                     Comentar
                   </S.ActionButton>
+
+                  {(user && (p.author === user.id || p.author_username === user.username)) && (
+                    <S.ActionButton
+                      type="button"
+                      $variant="delete"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        deletePost(p.id);
+                      }}
+                      disabled={!!busyDelete[p.id]}
+                    >
+                      {busyDelete[p.id] ? "Excluindo..." : "Excluir"}
+                    </S.ActionButton>
+                  )}
 
                   <S.StatLabel>Comentários {p.comments_count}</S.StatLabel>
                 </S.ActionsRow>

@@ -210,5 +210,8 @@ export const api = {
         body: JSON.stringify({ content }),
       });
     },
+    delete(id: number) {
+      return request(`/posts/posts/${id}/`, { method: "DELETE" });
+    },
   },
 };

@@ -59,7 +59,8 @@ function App() {
       } catch {
         if (cancelled) return;
         setUser(null);
-        navigate("/login", { replace: true });
+        const base = (import.meta as any).env?.VITE_APP_BASE_URL || "/login";
+        window.location.href = base;
       }
     };
 

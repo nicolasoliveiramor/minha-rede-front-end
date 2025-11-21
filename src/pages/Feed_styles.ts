@@ -99,13 +99,13 @@ export const ActionsRow = styled.div`
   width: 100%;
 `;
 
-export const ActionButton = styled.button<{ $variant?: "like" | "retweet"; $active?: boolean }>`
+export const ActionButton = styled.button<{ $variant?: "like" | "retweet" | "delete"; $active?: boolean }>`
   border: 1px solid ${theme.colors.border};
   border-radius: 999px;
   padding: 6px 10px;
   background: ${({ $active }) => ($active ? "rgba(29,161,242,0.1)" : "#fff")};
   color: ${({ $variant }) =>
-    $variant === "retweet" ? "#17bf63" : theme.colors.text};
+    $variant === "retweet" ? "#17bf63" : $variant === "delete" ? theme.colors.danger : theme.colors.text};
   transition: background 0.15s ease;
   min-width: 96px;
   text-align: center;
