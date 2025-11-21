@@ -46,10 +46,10 @@ export const GlobalStyle = createGlobalStyle`
     }
 `;
 
-export const AppContainer = styled.div`
+export const AppContainer = styled.div<{ $noPad?: boolean }>`
   max-width: 820px;
   margin: 0 auto;
-  padding: 16px 0;  /* adiciona padding vertical para afastar conteúdo das bordas */
+  padding: ${({ $noPad }) => ($noPad ? '0' : '16px 0')};
 `;
 
 export const NavBar = styled.nav`

@@ -94,7 +94,7 @@ function App() {
   const onProfilePage = location.pathname === "/profile";
 
   return (
-    <AppContainer>
+    <AppContainer $noPad={!showNavigation}>
       {showNavigation && user && (
         <NavBar>
           <AvatarLink to="/profile">
