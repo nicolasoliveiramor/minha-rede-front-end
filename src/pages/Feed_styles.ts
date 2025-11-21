@@ -225,7 +225,7 @@ export const FileName = styled.span`
 
 export const DeleteIcon = styled.button`
   position: absolute;
-  top: 8px;
+  top: 10px;
   right: 8px;
   width: 24px;
   height: 24px;
