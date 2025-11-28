@@ -111,7 +111,7 @@ export default function Profile({ onUpdated }: Props) {
     }
   }
 
-  async function changePasswrod(e: React.FormEvent) {
+  async function changePassword(e: React.FormEvent) {
     e.preventDefault();
     setPassErr(null);
     setPassOk(null);
@@ -206,7 +206,7 @@ export default function Profile({ onUpdated }: Props) {
       <Title>Alterar Senha</Title>
       {passErr && <ErrorText>{passErr}</ErrorText>}
       {passOk && <SuccessText>{passOk}</SuccessText>}
-      <LS.Form onSubmit={changePasswrod}>
+      <LS.Form onSubmit={changePassword}>
         <LS.TextInput
           type="password"
           value={currentPassword}
