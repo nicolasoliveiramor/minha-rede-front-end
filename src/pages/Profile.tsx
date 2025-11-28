@@ -1,9 +1,20 @@
 import { useEffect, useState, useRef } from "react";
 import { api, mediaUrl, type AuthUser } from "../api/client";
-import { Title, ErrorText, PrimaryButton } from "../styles";
+import { Title, ErrorText, SuccessText, PrimaryButton } from "../styles";
 import * as LS from "./Login_styles";
-import { UploadButton as FeedUploadButton, FileName as FeedFileName, UserName } from "./Feed_styles";
-import { ProfileContainer, FollowingSection, FollowingList, FollowingRow, SmallAvatarPreview, HiddenFileInput } from "./Profile_styles";
+import {
+  UploadButton as FeedUploadButton,
+  FileName as FeedFileName,
+  UserName,
+} from "./Feed_styles";
+import {
+  ProfileContainer,
+  FollowingSection,
+  FollowingList,
+  FollowingRow,
+  SmallAvatarPreview,
+  HiddenFileInput,
+} from "./Profile_styles";
 
 type Props = {
   onUpdated?: (user: AuthUser) => void;
@@ -24,8 +35,18 @@ export default function Profile({ onUpdated }: Props) {
   const [profileFile, setProfileFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [followingUsers, setFollowingUsers] = useState<Array<{ id: number; username: string; profile_picture: string | null }>>([]);
+  const [followingUsers, setFollowingUsers] = useState<
+    Array<{ id: number; username: string; profile_picture: string | null }>
+  >([]);
   const [followingLoading, setFollowingLoading] = useState(false);
+
+  // State para alterar a senha de usuário
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
+  const [passSaving, setPassSaving] = useState(false);
+  const [passErr, setPassErr] = useState<string | null>(null);
+  const [passOk, setPassOk] = useState<string | null>(null);
 
   useEffect(() => {
     api.auth
@@ -75,10 +96,9 @@ export default function Profile({ onUpdated }: Props) {
         bio,
         profile_picture: profileFile || undefined,
       });
-      const newUrl =
-        resp?.user?.profile_picture
-          ? mediaUrl(resp.user.profile_picture)
-          : profileUrl;
+      const newUrl = resp?.user?.profile_picture
+        ? mediaUrl(resp.user.profile_picture)
+        : profileUrl;
       setProfileUrl(newUrl || null);
       setProfileFile(null);
 
@@ -88,6 +108,28 @@ export default function Profile({ onUpdated }: Props) {
       setErr(e.message || "Falha ao salvar perfil");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function changePasswrod(e: React.FormEvent) {
+    e.preventDefault();
+    setPassErr(null);
+    setPassOk(null);
+    setPassSaving(true);
+    try {
+      await api.auth.changePassword({
+        current_password: currentPassword,
+        new_password: newPassword,
+        new_password_confirm: newPasswordConfirm,
+      });
+      setPassOk("Senha alterada com sucesso!");
+      setCurrentPassword("");
+      setNewPassword("");
+      setNewPasswordConfirm("");
+    } catch (e: any) {
+      setPassErr(e.message || "Falha ao alterar senha");
+    } finally {
+      setPassSaving(false);
     }
   }
 
@@ -150,10 +192,39 @@ export default function Profile({ onUpdated }: Props) {
         </PrimaryButton>
       </LS.Form>
 
+      <Title>Alterar Senha</Title>
+      {passErr && <ErrorText>{passErr}</ErrorText>}
+      {passOk && <SuccessText>{passOk}</SuccessText>}
+      <LS.Form onSubmit={changePasswrod}>
+        <LS.TextInput
+          type="password"
+          value={currentPassword}
+          onChange={(e) => setCurrentPassword(e.target.value)}
+          placeholder="Senha atual"
+        />
+        <LS.TextInput
+          type="password"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+          placeholder="Nova senha"
+        />
+        <LS.TextInput
+          type="password"
+          value={newPasswordConfirm}
+          onChange={(e) => setNewPasswordConfirm(e.target.value)}
+          placeholder="Confirmar nova senha"
+        />
+        <PrimaryButton type="submit" disabled={passSaving}>
+          {passSaving ? "Alterando..." : "Alterar"}
+        </PrimaryButton>
+      </LS.Form>
+
       <FollowingSection>
         <Title>Seguindo</Title>
         {followingLoading && <div>Carregando...</div>}
-        {followingUsers.length === 0 && !followingLoading && <div>Você ainda não segue ninguém.</div>}
+        {followingUsers.length === 0 && !followingLoading && (
+          <div>Você ainda não segue ninguém.</div>
+        )}
         <FollowingList>
           {followingUsers.map((u) => (
             <FollowingRow key={u.id}>

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 
 export const theme = {
   colors: {
+    success: "#17bf63",
     primary: "#1DA1F2",
     danger: "#E0245E",
     bg: "#f7f9fc",
@@ -115,6 +116,12 @@ export const Title = styled.h2`
 
 export const ErrorText = styled.div`
   color: ${theme.colors.danger};
+  font-family: ${theme.fonts.base};
+  font-weight: 600;
+`;
+
+export const SuccessText = styled.div`
+  color: ${theme.colors.success};
   font-family: ${theme.fonts.base};
   font-weight: 600;
 `;

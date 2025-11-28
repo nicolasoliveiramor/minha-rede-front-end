@@ -187,6 +187,17 @@ export const api = {
     userDetail(id: number): Promise<UserDetail> {
       return request<UserDetail>(`/auth/users/${id}/`, { method: "GET" });
     },
+    // Alterar senha do usuário
+    changePassword(payload: {
+      current_password: string;
+      new_password: string;
+      new_password_confirm: string;
+    }) {
+      return request("/auth/change-password/", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+    }
   },
   posts: {
     list(params?: { ordering?: string; search?: string }) {
