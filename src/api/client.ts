@@ -191,7 +191,7 @@ export const api = {
     changePassword(payload: {
       current_password: string;
       new_password: string;
-      password_confirm: string;
+      confirm_password: string;
     }) {
       return request("/auth/change-password/", {
         method: "POST",

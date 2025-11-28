@@ -131,7 +131,7 @@ export default function Profile({ onUpdated }: Props) {
       await api.auth.changePassword({
         current_password: currentPassword,
         new_password: newPassword,
-        password_confirm: newPasswordConfirm,
+        confirm_password: newPasswordConfirm,
       });
       setPassOk("Senha alterada com sucesso!");
       setCurrentPassword("");
