@@ -116,6 +116,17 @@ export default function Profile({ onUpdated }: Props) {
     setPassErr(null);
     setPassOk(null);
     setPassSaving(true);
+
+    if (!currentPassword || !newPassword || !newPasswordConfirm) {
+      setPassErr("Preencha todos os campos");
+      return;
+    }
+    if (newPassword !== newPasswordConfirm) {
+      setPassErr("As senhas não coincidem");
+      return;
+    }
+
+    setPassSaving(true);
     try {
       await api.auth.changePassword({
         current_password: currentPassword,
