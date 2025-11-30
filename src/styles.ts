@@ -61,6 +61,7 @@ export const AppContainer = styled.div<{ $noPad?: boolean }>`
 
 export const NavBar = styled.nav`
   display: flex;
+  justify-content: space-between;
   gap: 12px;
   margin-bottom: 16px;
   align-items: center;
